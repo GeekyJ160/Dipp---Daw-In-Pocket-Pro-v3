@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
-import { generateLyrics, generateMusicConcept, generateVoiceProfileDescription, MusicConceptParams, MusicConcept } from '../../services/geminiService';
+import { generateLyrics, generateMusicConcept, MusicConceptParams, MusicConcept } from '../../services/geminiService';
 
 interface AIPanelProps {
   isOpen: boolean;
@@ -8,8 +8,8 @@ interface AIPanelProps {
 }
 
 export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
-  const [activeSection, setActiveSection] = useState<string | null>('lyrics');
   const [loading, setLoading] = useState(false);
+  const [loadingPhase, setLoadingPhase] = useState(0);
   
   // State for Lyrics
   const [lyricPrompt, setLyricPrompt] = useState('');
@@ -19,19 +19,47 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
   const [musicGenre, setMusicGenre] = useState('Electronic');
   const [musicMood, setMusicMood] = useState('Energetic');
   const [musicTempo, setMusicTempo] = useState('Medium (90-110 BPM)');
-  const [musicKey, setMusicKey] = useState('Auto');
-  const [musicInstruments, setMusicInstruments] = useState('');
+  
+  // Granular Controls
+  const [musicKeyRoot, setMusicKeyRoot] = useState('Auto');
+  const [musicKeyScale, setMusicKeyScale] = useState('Minor');
+  const [musicInstrPrimary, setMusicInstrPrimary] = useState('Synthesizer');
+  const [musicInstrSecondary, setMusicInstrSecondary] = useState('');
+  
   const [musicDescription, setMusicDescription] = useState('');
   const [musicResult, setMusicResult] = useState<MusicConcept | null>(null);
 
   const genres = ['Electronic', 'Hip Hop', 'Rock', 'Pop', 'Jazz', 'Classical', 'Ambient', 'Cinematic', 'Lo-Fi', 'R&B', 'Techno', 'House', 'Trap', 'Orchestral'];
   const moods = ['Energetic', 'Chill', 'Dark', 'Happy', 'Sad', 'Romantic', 'Aggressive', 'Dreamy', 'Focus', 'Uplifting', 'Melancholic', 'Euphoric'];
   const tempos = ['Slow (< 90 BPM)', 'Medium (90-110 BPM)', 'Upbeat (110-128 BPM)', 'Fast (128+ BPM)', 'Variable/Dynamic'];
-  const keys = ['Auto', 'C Major', 'A Minor', 'G Major', 'E Minor', 'F Major', 'D Minor', 'D Major', 'B Minor', 'Eb Major', 'C Minor', 'Bb Major', 'G Minor'];
+  
+  const keyRoots = ['Auto', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const keyScales = ['Major', 'Minor', 'Dorian', 'Phrygian', 'Lydian', 'Mixolydian', 'Locrian', 'Harmonic Minor', 'Melodic Minor', 'Pentatonic'];
+  
+  const primaryInstruments = ['Synthesizer', 'Piano/Keys', 'Electric Guitar', 'Acoustic Guitar', 'Orchestral Strings', '808 Bass', 'Electric Bass', 'Drum Machine', 'Acoustic Drums', 'Vocal Chops', 'Atmospheric Pads'];
+
+  const loadingMessages = [
+    "Analyzing genre parameters...",
+    "Constructing musical structure...",
+    "Selecting instrumentation...",
+    "Finalizing production details..."
+  ];
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (loading && !lyricResult) { 
+        setLoadingPhase(0);
+        interval = setInterval(() => {
+            setLoadingPhase(prev => (prev + 1) % loadingMessages.length);
+        }, 1500);
+    }
+    return () => clearInterval(interval);
+  }, [loading, lyricResult]);
 
   const handleLyricsGen = async () => {
     if (!lyricPrompt) return;
     setLoading(true);
+    setMusicResult(null); // Clear other results
     const result = await generateLyrics(lyricPrompt);
     setLyricResult(result);
     setLoading(false);
@@ -39,14 +67,21 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
 
   const handleMusicGen = async () => {
     setLoading(true);
+    setLyricResult(''); // Clear other results
+    
+    // Construct simplified parameters from granular controls
+    const keyParam = musicKeyRoot === 'Auto' ? 'Auto' : `${musicKeyRoot} ${musicKeyScale}`;
+    const instrParam = `${musicInstrPrimary}${musicInstrSecondary ? ', ' + musicInstrSecondary : ''}`;
+
     const params: MusicConceptParams = {
         genre: musicGenre,
         mood: musicMood,
         tempo: musicTempo,
-        key: musicKey,
-        instrumentation: musicInstruments,
+        key: keyParam,
+        instrumentation: instrParam,
         description: musicDescription
     };
+    
     const result = await generateMusicConcept(params);
     setMusicResult(result);
     setLoading(false);
@@ -89,8 +124,8 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
                 onClick={handleLyricsGen}
                 disabled={loading}
             >
-                {loading ? <i className="fas fa-spinner fa-spin"/> : <i className="fas fa-wand-magic-sparkles"/>}
-                {loading ? 'Generating...' : 'Generate Lyrics'}
+                {loading && !musicResult ? <i className="fas fa-spinner fa-spin"/> : <i className="fas fa-wand-magic-sparkles"/>}
+                {loading && !musicResult ? 'Generating...' : 'Generate Lyrics'}
             </Button>
             
             {lyricResult && (
@@ -131,7 +166,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
 
             <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Tempo</label>
+                    <label className="text-xs text-gray-400 mb-1 block">Tempo Range</label>
                     <select 
                         className="w-full bg-bg-secondary border border-[#252540] rounded p-2 text-sm text-white focus:border-brand-purple focus:outline-none"
                         value={musicTempo}
@@ -141,26 +176,45 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
                     </select>
                 </div>
                 <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Musical Key</label>
-                    <select 
-                        className="w-full bg-bg-secondary border border-[#252540] rounded p-2 text-sm text-white focus:border-brand-purple focus:outline-none"
-                        value={musicKey}
-                        onChange={(e) => setMusicKey(e.target.value)}
-                    >
-                        {keys.map(k => <option key={k} value={k}>{k}</option>)}
-                    </select>
+                    <label className="text-xs text-gray-400 mb-1 block">Key & Scale</label>
+                    <div className="flex gap-1">
+                        <select 
+                            className="w-[45%] bg-bg-secondary border border-[#252540] rounded p-2 text-sm text-white focus:border-brand-purple focus:outline-none"
+                            value={musicKeyRoot}
+                            onChange={(e) => setMusicKeyRoot(e.target.value)}
+                        >
+                            {keyRoots.map(k => <option key={k} value={k}>{k}</option>)}
+                        </select>
+                        <select 
+                            className="w-[55%] bg-bg-secondary border border-[#252540] rounded p-2 text-sm text-white focus:border-brand-purple focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                            value={musicKeyScale}
+                            onChange={(e) => setMusicKeyScale(e.target.value)}
+                            disabled={musicKeyRoot === 'Auto'}
+                        >
+                            {keyScales.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
                 </div>
             </div>
 
             <div className="mb-3">
-                <label className="text-xs text-gray-400 mb-1 block">Key Instrumentation</label>
-                <input 
-                    type="text"
-                    className="w-full bg-bg-secondary border border-[#252540] rounded p-2 text-sm text-white focus:border-brand-purple focus:outline-none"
-                    placeholder="e.g. Analog Synths, 808s, Electric Guitar"
-                    value={musicInstruments}
-                    onChange={(e) => setMusicInstruments(e.target.value)}
-                />
+                <label className="text-xs text-gray-400 mb-1 block">Instrumentation</label>
+                <div className="space-y-2">
+                    <select 
+                        className="w-full bg-bg-secondary border border-[#252540] rounded p-2 text-sm text-white focus:border-brand-purple focus:outline-none"
+                        value={musicInstrPrimary}
+                        onChange={(e) => setMusicInstrPrimary(e.target.value)}
+                    >
+                        {primaryInstruments.map(i => <option key={i} value={i}>{i}</option>)}
+                    </select>
+                    <input 
+                        type="text"
+                        className="w-full bg-bg-secondary border border-[#252540] rounded p-2 text-sm text-white focus:border-brand-purple focus:outline-none placeholder-gray-600"
+                        placeholder="+ Additional instruments/sounds..."
+                        value={musicInstrSecondary}
+                        onChange={(e) => setMusicInstrSecondary(e.target.value)}
+                    />
+                </div>
             </div>
 
             <div className="mb-3">
@@ -175,64 +229,97 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
 
             <Button 
                 variant="primary" 
-                className="w-full mt-1 justify-center bg-brand-purple border-brand-purple hover:bg-purple-600"
+                className="w-full mt-1 justify-center bg-brand-purple border-brand-purple hover:bg-purple-600 shadow-[0_0_15px_rgba(185,103,255,0.3)]"
                 onClick={handleMusicGen}
                 disabled={loading}
             >
-                {loading ? <i className="fas fa-spinner fa-spin"/> : <i className="fas fa-lightbulb"/>}
-                {loading ? 'Thinking...' : 'Generate Concept'}
+                {loading && !lyricResult ? <i className="fas fa-spinner fa-spin"/> : <i className="fas fa-lightbulb"/>}
+                {loading && !lyricResult ? 'Thinking...' : 'Generate Concept'}
             </Button>
 
-            {musicResult && (
-                <div className="mt-4 space-y-4 animate-fadeIn border-t border-[#252540] pt-4">
-                    <div className="p-3 bg-bg-primary rounded-lg border border-[#252540] shadow-sm">
-                        <div className="text-accent font-bold text-lg mb-2">{musicResult.conceptName}</div>
-                        <div className="flex gap-2">
-                             <div className="bg-bg-tertiary px-3 py-1 rounded text-xs font-mono text-brand-pink border border-[#252540] flex items-center gap-2">
-                                <i className="fas fa-clock"></i> {musicResult.bpm}
+            {loading && !lyricResult && (
+                <div className="mt-4 p-6 bg-bg-secondary/50 rounded-lg border border-[#252540] flex flex-col items-center justify-center animate-fadeIn">
+                    <div className="relative w-12 h-12 mb-3">
+                        <div className="absolute inset-0 rounded-full border-2 border-[#252540]"></div>
+                        <div className="absolute inset-0 rounded-full border-t-2 border-brand-purple animate-spin"></div>
+                    </div>
+                    <div className="text-brand-purple font-mono text-sm font-bold animate-pulse">{loadingMessages[loadingPhase]}</div>
+                </div>
+            )}
+
+            {!loading && musicResult && (
+                <div className="mt-6 space-y-4 animate-slideUp">
+                    {/* Header: Title, BPM, Key */}
+                    <div className="p-4 bg-gradient-to-br from-bg-secondary to-[#1a1a2e] rounded-xl border border-[#252540] shadow-lg relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                            <i className="fas fa-music text-8xl"></i>
+                        </div>
+                        <div className="text-[10px] font-mono text-brand-purple mb-1 tracking-widest uppercase">Generated Concept</div>
+                        <h3 className="text-xl font-bold text-white mb-4">{musicResult.conceptName}</h3>
+                        <div className="grid grid-cols-2 gap-3 relative z-10">
+                             <div className="bg-bg-primary/60 backdrop-blur-sm p-2 rounded border border-[#252540] flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent">
+                                    <i className="fas fa-clock"></i>
+                                </div>
+                                <div>
+                                    <div className="text-[10px] text-gray-500 uppercase font-bold">BPM</div>
+                                    <div className="text-sm font-mono text-white">{musicResult.bpm}</div>
+                                </div>
                              </div>
-                             <div className="bg-bg-tertiary px-3 py-1 rounded text-xs font-mono text-brand-purple border border-[#252540] flex items-center gap-2">
-                                <i className="fas fa-music"></i> {musicResult.key}
+                             <div className="bg-bg-primary/60 backdrop-blur-sm p-2 rounded border border-[#252540] flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-brand-pink/10 flex items-center justify-center text-brand-pink">
+                                    <i className="fas fa-music"></i>
+                                </div>
+                                <div>
+                                     <div className="text-[10px] text-gray-500 uppercase font-bold">Key</div>
+                                     <div className="text-sm font-mono text-white">{musicResult.key}</div>
+                                </div>
                              </div>
                         </div>
                     </div>
 
+                    {/* Instrumentation */}
                     <div>
-                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                            <i className="fas fa-guitar text-xs"></i> Instrumentation
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <i className="fas fa-guitar text-accent"></i> Instrumentation
                         </h4>
                         <div className="flex flex-wrap gap-2">
                             {musicResult.instrumentation?.map((inst, i) => (
-                                <span key={i} className="text-xs bg-bg-secondary px-2 py-1 rounded text-gray-300 border border-[#252540] hover:border-accent transition-colors">
+                                <span key={i} className="text-xs bg-bg-secondary px-3 py-1.5 rounded-full text-gray-300 border border-[#252540] hover:border-accent hover:text-white transition-all shadow-sm">
                                     {inst}
                                 </span>
                             ))}
                         </div>
                     </div>
 
-                    <div>
-                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                             <i className="fas fa-list-ol text-xs"></i> Structure
+                    {/* Structure */}
+                    <div className="bg-bg-secondary/50 rounded-xl border border-[#252540] p-4">
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                             <i className="fas fa-layer-group text-brand-purple"></i> Structure
                         </h4>
-                        <div className="space-y-1 bg-bg-secondary p-2 rounded border border-[#252540]">
+                        <div className="relative pl-4 space-y-4 before:absolute before:left-[5px] before:top-2 before:bottom-2 before:w-[2px] before:bg-[#252540]">
                             {musicResult.structure?.map((section, i) => (
-                                <div key={i} className="flex items-center gap-3 text-sm text-gray-300 border-l-2 border-[#252540] pl-2 hover:border-brand-purple transition-colors">
-                                    <span className="text-xs text-gray-500 font-mono w-4">{i+1}.</span>
-                                    {section}
+                                <div key={i} className="relative flex items-center gap-3">
+                                    <div className="absolute -left-[19px] w-2.5 h-2.5 rounded-full bg-bg-tertiary border-2 border-brand-purple"></div>
+                                    <div className="flex-1 bg-bg-tertiary p-2 rounded border border-[#252540] text-sm text-gray-300 flex justify-between items-center group hover:border-brand-purple transition-colors">
+                                        <span>{section}</span>
+                                        <span className="text-[10px] font-mono text-gray-600 group-hover:text-brand-purple">PART {i+1}</span>
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    <div>
-                         <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
-                             <i className="fas fa-sliders-h text-xs"></i> Production Tips
+                    {/* Production Tips */}
+                    <div className="bg-gradient-to-br from-bg-secondary to-bg-tertiary rounded-xl border border-[#252540] p-4">
+                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                             <i className="fas fa-sliders-h text-brand-pink"></i> Production Tips
                          </h4>
-                         <ul className="text-xs text-gray-400 space-y-1 bg-bg-secondary p-2 rounded border border-[#252540]">
+                         <ul className="space-y-2">
                             {musicResult.productionTips?.map((tip, i) => (
-                                <li key={i} className="flex gap-2 items-start py-1 border-b border-[#252540] last:border-0">
-                                    <i className="fas fa-info-circle text-accent mt-0.5"></i>
-                                    <span>{tip}</span>
+                                <li key={i} className="flex gap-3 items-start text-xs text-gray-300 bg-bg-primary/50 p-2 rounded border border-transparent hover:border-[#252540]">
+                                    <i className="fas fa-lightbulb text-brand-pink mt-0.5"></i>
+                                    <span className="leading-relaxed">{tip}</span>
                                 </li>
                             ))}
                          </ul>
