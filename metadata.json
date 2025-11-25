@@ -1,0 +1,7 @@
+{
+  "name": "DIPP: DAW In Pocket Pro",
+  "description": "A professional-grade web DAW with AI-powered creative tools, featuring track management, timeline visualization, and Gemini integration for lyrics and composition.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
