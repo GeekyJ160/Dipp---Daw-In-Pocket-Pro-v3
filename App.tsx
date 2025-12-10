@@ -48,6 +48,10 @@ const App: React.FC = () => {
     }
   };
 
+  const handleVolumeChange = (id: number, volume: number) => {
+    setTracks(tracks.map(t => t.id === id ? { ...t, volume } : t));
+  };
+
   const stats: ProjectStats = {
     trackCount: tracks.length,
     duration: '3:45',
@@ -68,6 +72,7 @@ const App: React.FC = () => {
           stats={stats}
           onAddTrack={() => setAddTrackModalOpen(true)}
           onDeleteTrack={handleDeleteTrack}
+          onVolumeChange={handleVolumeChange}
         />
         
         <Timeline 

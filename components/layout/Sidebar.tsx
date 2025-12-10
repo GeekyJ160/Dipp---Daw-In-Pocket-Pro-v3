@@ -8,9 +8,17 @@ interface SidebarProps {
   stats: ProjectStats;
   onAddTrack: () => void;
   onDeleteTrack: (id: number) => void;
+  onVolumeChange: (id: number, volume: number) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, tracks, stats, onAddTrack, onDeleteTrack }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  isOpen, 
+  tracks, 
+  stats, 
+  onAddTrack, 
+  onDeleteTrack,
+  onVolumeChange
+}) => {
   return (
     <aside 
       className={`
@@ -48,7 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, tracks, stats, onAddTr
               style={{ backgroundColor: track.color }} 
             />
             
-            <div className="flex justify-between items-center mb-2 pl-2">
+            <div className="flex justify-between items-center mb-1 pl-2">
               <span className="font-semibold text-sm">{track.name}</span>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button className="p-1 text-xs text-gray-400 hover:text-white"><i className="fas fa-volume-mute"></i></button>
@@ -60,6 +68,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, tracks, stats, onAddTr
                     <i className="fas fa-trash"></i>
                 </button>
               </div>
+            </div>
+
+            {/* Volume Control */}
+            <div className="flex items-center gap-2 px-1 mb-2 group/vol">
+                 <div className="text-[10px] w-8 text-right font-mono text-gray-500 group-hover/vol:text-accent">
+                    {Math.round(track.volume * 100)}%
+                 </div>
+                 <input 
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    aria-label={`Volume for ${track.name}`}
+                    value={track.volume}
+                    onChange={(e) => onVolumeChange(track.id, parseFloat(e.target.value))}
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="flex-1 h-1 bg-bg-secondary rounded-lg appearance-none cursor-pointer accent-accent hover:h-1.5 transition-all"
+                 />
             </div>
             
             {/* Mini visualizer placeholder */}
