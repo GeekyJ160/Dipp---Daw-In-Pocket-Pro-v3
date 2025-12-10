@@ -21,6 +21,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
+  const [autoScroll, setAutoScroll] = useState(true);
   const requestRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
   const lastPauseTimeRef = useRef<number>(0);
@@ -155,12 +156,14 @@ export const Timeline: React.FC<TimelineProps> = ({
     ctx.lineTo(playheadX, 10);
     ctx.fill();
 
-    // Auto Scroll
-    if (isPlaying && playheadX > container.scrollLeft + container.clientWidth * 0.8) {
-        container.scrollLeft = playheadX - container.clientWidth * 0.2;
+    // Auto Scroll logic
+    if (isPlaying && autoScroll) {
+        if (playheadX > container.scrollLeft + container.clientWidth * 0.9) {
+            container.scrollLeft = playheadX - container.clientWidth * 0.2;
+        }
     }
 
-  }, [tracks, currentTime, isPlaying]);
+  }, [tracks, currentTime, isPlaying, autoScroll]);
 
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
@@ -199,6 +202,21 @@ export const Timeline: React.FC<TimelineProps> = ({
             </div>
 
             <div className="flex items-center gap-3 ml-auto">
+                <button 
+                    onClick={() => setAutoScroll(!autoScroll)}
+                    className={`h-8 px-3 rounded text-xs font-medium border transition-all flex items-center gap-2 ${
+                        autoScroll 
+                        ? 'bg-accent/10 border-accent text-accent' 
+                        : 'bg-bg-tertiary border-[#252540] text-gray-400 hover:text-white'
+                    }`}
+                    title="Toggle Auto-Scroll"
+                >
+                    <i className={`fas fa-arrow-right ${autoScroll ? 'animate-pulse' : ''}`}></i>
+                    <span>Follow</span>
+                </button>
+
+                <div className="h-8 w-px bg-[#252540] mx-2"></div>
+
                 <label className="text-sm text-gray-400 font-medium">BPM</label>
                 <input 
                     type="number" 

@@ -15,6 +15,7 @@ interface AIPanelProps {
 
 export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
+  const [activeGenerator, setActiveGenerator] = useState<string | null>(null); // 'voice', 'lyrics', 'music'
   const [loadingPhase, setLoadingPhase] = useState(0);
   
   // State for Voice
@@ -70,43 +71,64 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
   const handleVoiceGen = async () => {
     if (!voicePrompt) return;
     setLoading(true);
-    setMusicResult(null); 
-    setLyricResult('');
-    const result = await generateVoiceProfileDescription(voicePrompt);
-    setVoiceResult(result);
-    setLoading(false);
+    setActiveGenerator('voice');
+    
+    // Optional: clear other results to focus attention
+    // setMusicResult(null); 
+    // setLyricResult('');
+    
+    try {
+      const result = await generateVoiceProfileDescription(voicePrompt);
+      setVoiceResult(result);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+      setActiveGenerator(null);
+    }
   };
 
   const handleLyricsGen = async () => {
     if (!lyricPrompt) return;
     setLoading(true);
-    setMusicResult(null); 
-    setVoiceResult('');
-    const result = await generateLyrics(lyricPrompt);
-    setLyricResult(result);
-    setLoading(false);
+    setActiveGenerator('lyrics');
+    
+    try {
+      const result = await generateLyrics(lyricPrompt);
+      setLyricResult(result);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+      setActiveGenerator(null);
+    }
   };
 
   const handleMusicGen = async () => {
     setLoading(true);
-    setLyricResult(''); 
-    setVoiceResult('');
+    setActiveGenerator('music');
     
-    const keyParam = musicKeyRoot === 'Auto' ? 'Auto' : `${musicKeyRoot} ${musicKeyScale}`;
-    const instrParam = `${musicInstrPrimary}${musicInstrSecondary ? ', ' + musicInstrSecondary : ''}`;
-
-    const params: MusicConceptParams = {
-        genre: musicGenre,
-        mood: musicMood,
-        tempo: musicTempo,
-        key: keyParam,
-        instrumentation: instrParam,
-        description: musicDescription
-    };
-    
-    const result = await generateMusicConcept(params);
-    setMusicResult(result);
-    setLoading(false);
+    try {
+      const keyParam = musicKeyRoot === 'Auto' ? 'Auto' : `${musicKeyRoot} ${musicKeyScale}`;
+      const instrParam = `${musicInstrPrimary}${musicInstrSecondary ? ', ' + musicInstrSecondary : ''}`;
+  
+      const params: MusicConceptParams = {
+          genre: musicGenre,
+          mood: musicMood,
+          tempo: musicTempo,
+          key: keyParam,
+          instrumentation: instrParam,
+          description: musicDescription
+      };
+      
+      const result = await generateMusicConcept(params);
+      setMusicResult(result);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+      setActiveGenerator(null);
+    }
   };
 
   return (
@@ -133,7 +155,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
       <div className="flex-1 overflow-y-auto p-5 space-y-8 custom-scrollbar">
         
         {/* Voice Trainer Section */}
-        <section className="bg-bg-tertiary border border-[#252540] rounded-xl overflow-hidden hover:border-brand-pink transition-colors duration-300">
+        <section className={`bg-bg-tertiary border rounded-xl overflow-hidden transition-all duration-300 ${activeGenerator === 'voice' ? 'border-brand-pink shadow-[0_0_15px_rgba(255,77,141,0.2)]' : 'border-[#252540] hover:border-brand-pink'}`}>
             <div className="p-4 border-b border-[#252540]/50 bg-gradient-to-r from-brand-pink/10 to-transparent">
                 <h3 className="text-brand-pink font-semibold flex items-center gap-2">
                     <i className="fas fa-microphone-lines"></i> Voice Trainer
@@ -152,8 +174,8 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
                     onClick={handleVoiceGen}
                     disabled={loading}
                 >
-                    {loading && !musicResult && !lyricResult ? <i className="fas fa-spinner fa-spin"/> : <i className="fas fa-fingerprint"/>}
-                    {loading && !musicResult && !lyricResult ? 'Analyzing...' : 'Generate Profile'}
+                    {loading && activeGenerator === 'voice' ? <i className="fas fa-spinner fa-spin"/> : <i className="fas fa-fingerprint"/>}
+                    {loading && activeGenerator === 'voice' ? 'Analyzing...' : 'Generate Profile'}
                 </Button>
 
                 {voiceResult && (
@@ -166,7 +188,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
         </section>
 
         {/* Lyrics Section */}
-        <section className="bg-bg-tertiary border border-[#252540] rounded-xl overflow-hidden hover:border-accent transition-colors duration-300">
+        <section className={`bg-bg-tertiary border rounded-xl overflow-hidden transition-all duration-300 ${activeGenerator === 'lyrics' ? 'border-accent shadow-[0_0_15px_rgba(0,231,255,0.2)]' : 'border-[#252540] hover:border-accent'}`}>
             <div className="p-4 border-b border-[#252540]/50 bg-gradient-to-r from-accent/10 to-transparent">
                 <h3 className="text-accent font-semibold flex items-center gap-2">
                     <i className="fas fa-pen-fancy"></i> Lyric Assistant
@@ -185,8 +207,8 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
                     onClick={handleLyricsGen}
                     disabled={loading}
                 >
-                    {loading && !musicResult && !voiceResult ? <i className="fas fa-spinner fa-spin"/> : <i className="fas fa-wand-magic-sparkles"/>}
-                    {loading && !musicResult && !voiceResult ? 'Writing...' : 'Generate Lyrics'}
+                    {loading && activeGenerator === 'lyrics' ? <i className="fas fa-spinner fa-spin"/> : <i className="fas fa-wand-magic-sparkles"/>}
+                    {loading && activeGenerator === 'lyrics' ? 'Writing...' : 'Generate Lyrics'}
                 </Button>
                 
                 {lyricResult && (
@@ -199,7 +221,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
         </section>
 
         {/* Music Concept Section */}
-        <section className="bg-bg-tertiary border border-[#252540] rounded-xl overflow-hidden hover:border-brand-purple transition-colors duration-300">
+        <section className={`bg-bg-tertiary border rounded-xl overflow-hidden transition-all duration-300 ${activeGenerator === 'music' ? 'border-brand-purple shadow-[0_0_15px_rgba(185,103,255,0.2)]' : 'border-[#252540] hover:border-brand-purple'}`}>
             <div className="p-4 border-b border-[#252540]/50 bg-gradient-to-r from-brand-purple/10 to-transparent">
                 <h3 className="text-brand-purple font-semibold flex items-center gap-2">
                     <i className="fas fa-music"></i> Music Generator
@@ -299,13 +321,13 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
                     onClick={handleMusicGen}
                     disabled={loading}
                 >
-                    {loading && !lyricResult && !voiceResult ? <i className="fas fa-spinner fa-spin"/> : <i className="fas fa-lightbulb"/>}
-                    {loading && !lyricResult && !voiceResult ? 'Composing...' : 'Generate Concept'}
+                    {loading && activeGenerator === 'music' ? <i className="fas fa-spinner fa-spin"/> : <i className="fas fa-lightbulb"/>}
+                    {loading && activeGenerator === 'music' ? 'Composing...' : 'Generate Concept'}
                 </Button>
             </div>
 
-            {/* Loading Indicator */}
-            {loading && !lyricResult && !voiceResult && (
+            {/* Loading Indicator (Music) */}
+            {loading && activeGenerator === 'music' && (
                 <div className="p-6 bg-bg-secondary/50 border-t border-[#252540] flex flex-col items-center justify-center animate-fadeIn">
                     <div className="relative w-12 h-12 mb-3">
                         <div className="absolute inset-0 rounded-full border-2 border-[#252540]"></div>
