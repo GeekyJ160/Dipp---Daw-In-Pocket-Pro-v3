@@ -11,9 +11,10 @@ import {
 interface AIPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  projectBpm: number;
 }
 
-export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
+export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose, projectBpm }) => {
   const [loading, setLoading] = useState(false);
   const [activeGenerator, setActiveGenerator] = useState<string | null>(null); // 'voice', 'lyrics', 'music'
   const [loadingPhase, setLoadingPhase] = useState(0);
@@ -29,7 +30,9 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
   // State for Music
   const [musicGenre, setMusicGenre] = useState('Electronic');
   const [musicMood, setMusicMood] = useState('Energetic');
-  const [musicTempo, setMusicTempo] = useState('Medium (90-110 BPM)');
+  const [musicBpm, setMusicBpm] = useState<number>(projectBpm);
+  const [musicTimeSig, setMusicTimeSig] = useState('4/4');
+  const [musicArrangement, setMusicArrangement] = useState('Simple (Verse-Chorus)');
   
   // Granular Controls
   const [musicKeyRoot, setMusicKeyRoot] = useState('Auto');
@@ -42,9 +45,13 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
 
   const genres = ['Electronic', 'Hip Hop', 'Rock', 'Pop', 'Jazz', 'Classical', 'Ambient', 'Cinematic', 'Lo-Fi', 'R&B', 'Techno', 'House', 'Trap', 'Orchestral'];
   const moods = ['Energetic', 'Chill', 'Dark', 'Happy', 'Sad', 'Romantic', 'Aggressive', 'Dreamy', 'Focus', 'Uplifting', 'Melancholic', 'Euphoric'];
-  const tempos = ['Slow (< 90 BPM)', 'Medium (90-110 BPM)', 'Upbeat (110-128 BPM)', 'Fast (128+ BPM)', 'Variable/Dynamic'];
+  const timeSignatures = ['4/4', '3/4', '6/8', '5/4', '7/8', '12/8'];
+  const arrangementOptions = [
+    'Simple (Verse-Chorus)',
+    'Complex (Intro-Verse-Chorus-Bridge-Outro)',
+    'Experimental'
+  ];
   
-  // Enhanced musical keys with enharmonic equivalents
   const keyRoots = ['Auto', 'C', 'C#/Db', 'D', 'D#/Eb', 'E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'A#/Bb', 'B'];
   const keyScales = ['Major', 'Minor', 'Dorian', 'Phrygian', 'Lydian', 'Mixolydian', 'Locrian', 'Harmonic Minor', 'Melodic Minor', 'Pentatonic', 'Blues', 'Whole Tone'];
   
@@ -56,6 +63,13 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
     "Structuring output...",
     "Finalizing details..."
   ];
+
+  // Initialize with project BPM when panel opens or project BPM changes
+  useEffect(() => {
+    if (isOpen) {
+      setMusicBpm(projectBpm);
+    }
+  }, [isOpen, projectBpm]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -72,10 +86,6 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
     if (!voicePrompt) return;
     setLoading(true);
     setActiveGenerator('voice');
-    
-    // Optional: clear other results to focus attention
-    // setMusicResult(null); 
-    // setLyricResult('');
     
     try {
       const result = await generateVoiceProfileDescription(voicePrompt);
@@ -115,9 +125,11 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
       const params: MusicConceptParams = {
           genre: musicGenre,
           mood: musicMood,
-          tempo: musicTempo,
+          tempo: `${musicBpm} BPM`,
+          timeSignature: musicTimeSig,
           key: keyParam,
           instrumentation: instrParam,
+          arrangement: musicArrangement,
           description: musicDescription
       };
       
@@ -129,6 +141,23 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
       setLoading(false);
       setActiveGenerator(null);
     }
+  };
+
+  const getSectionColor = (section: string) => {
+    const s = section.toLowerCase();
+    if (s.includes('chorus') || s.includes('drop') || s.includes('hook')) {
+        return 'bg-accent/20 border-accent text-accent shadow-[0_0_15px_rgba(0,231,255,0.3)]';
+    }
+    if (s.includes('verse')) {
+        return 'bg-brand-purple/20 border-brand-purple text-brand-purple';
+    }
+    if (s.includes('intro') || s.includes('outro') || s.includes('build')) {
+        return 'bg-bg-tertiary border-[#252540] text-gray-500';
+    }
+    if (s.includes('bridge') || s.includes('solo') || s.includes('break')) {
+        return 'bg-brand-pink/20 border-brand-pink text-brand-pink';
+    }
+    return 'bg-bg-tertiary border-[#252540] text-gray-400';
   };
 
   return (
@@ -252,37 +281,87 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
                     </div>
                 </div>
 
+                {/* Tempo Slider Section */}
+                <div className="p-3 bg-bg-secondary/50 rounded-lg border border-[#252540]">
+                    <div className="flex justify-between items-center mb-2">
+                        <label className="text-xs text-gray-400 font-medium">Tempo (BPM)</label>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => setMusicBpm(projectBpm)}
+                            className="text-[9px] px-1.5 py-0.5 rounded border border-[#252540] text-gray-500 hover:text-accent hover:border-accent transition-colors uppercase font-bold"
+                            title="Sync with project BPM"
+                          >
+                            Sync: {projectBpm}
+                          </button>
+                          <input 
+                              type="number"
+                              min="40"
+                              max="240"
+                              value={musicBpm}
+                              onChange={(e) => setMusicBpm(Math.min(240, Math.max(40, parseInt(e.target.value) || 40)))}
+                              className="w-12 bg-bg-tertiary border border-[#252540] rounded px-1 py-0.5 text-xs text-accent text-center font-mono focus:border-accent focus:outline-none"
+                          />
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-gray-500 font-mono">40</span>
+                        <input 
+                            type="range"
+                            min="40"
+                            max="240"
+                            step="1"
+                            value={musicBpm}
+                            onChange={(e) => setMusicBpm(parseInt(e.target.value))}
+                            className="flex-1 h-1.5 bg-bg-tertiary rounded-lg appearance-none cursor-pointer accent-accent shadow-[0_0_10px_rgba(0,231,255,0.1)]"
+                        />
+                        <span className="text-[10px] text-gray-500 font-mono">240</span>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="text-xs text-gray-400 mb-1 block font-medium">Tempo</label>
+                     <div>
+                        <label className="text-xs text-gray-400 mb-1 block font-medium">Time Sig.</label>
                         <select 
                             className="w-full bg-bg-secondary border border-[#252540] rounded p-2 text-sm text-white focus:border-brand-purple focus:outline-none"
-                            value={musicTempo}
-                            onChange={(e) => setMusicTempo(e.target.value)}
+                            value={musicTimeSig}
+                            onChange={(e) => setMusicTimeSig(e.target.value)}
                         >
-                            {tempos.map(t => <option key={t} value={t}>{t}</option>)}
+                            {timeSignatures.map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs text-gray-400 mb-1 block font-medium">Key</label>
+                        <label className="text-xs text-gray-400 mb-1 block font-medium">Key Root & Scale</label>
                         <div className="flex gap-1">
                             <select 
-                                className="w-[55%] bg-bg-secondary border border-[#252540] rounded p-2 text-sm text-white focus:border-brand-purple focus:outline-none"
+                                className="w-[40%] bg-bg-secondary border border-[#252540] rounded p-2 text-xs text-white focus:border-brand-purple focus:outline-none"
                                 value={musicKeyRoot}
                                 onChange={(e) => setMusicKeyRoot(e.target.value)}
+                                title="Root Note"
                             >
                                 {keyRoots.map(k => <option key={k} value={k}>{k}</option>)}
                             </select>
                             <select 
-                                className="w-[45%] bg-bg-secondary border border-[#252540] rounded p-2 text-sm text-white focus:border-brand-purple focus:outline-none disabled:opacity-50"
+                                className="w-[60%] bg-bg-secondary border border-[#252540] rounded p-2 text-xs text-white focus:border-brand-purple focus:outline-none disabled:opacity-50"
                                 value={musicKeyScale}
                                 onChange={(e) => setMusicKeyScale(e.target.value)}
                                 disabled={musicKeyRoot === 'Auto'}
+                                title="Scale"
                             >
                                 {keyScales.map(s => <option key={s} value={s}>{s}</option>)}
                             </select>
                         </div>
                     </div>
+                </div>
+
+                <div>
+                    <label className="text-xs text-gray-400 mb-1 block font-medium">Arrangement Style</label>
+                    <select 
+                        className="w-full bg-bg-secondary border border-[#252540] rounded p-2 text-sm text-white focus:border-brand-purple focus:outline-none"
+                        value={musicArrangement}
+                        onChange={(e) => setMusicArrangement(e.target.value)}
+                    >
+                        {arrangementOptions.map(a => <option key={a} value={a}>{a}</option>)}
+                    </select>
                 </div>
 
                 <div>
@@ -295,13 +374,16 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
                         >
                             {primaryInstruments.map(i => <option key={i} value={i}>{i}</option>)}
                         </select>
-                        <input 
-                            type="text"
-                            className="w-full bg-bg-secondary border border-[#252540] rounded p-2 text-sm text-white focus:border-brand-purple focus:outline-none placeholder-gray-600"
-                            placeholder="+ Additional instruments..."
-                            value={musicInstrSecondary}
-                            onChange={(e) => setMusicInstrSecondary(e.target.value)}
-                        />
+                        <div className="relative group">
+                            <div className="absolute left-3 top-2 text-xs text-brand-purple pointer-events-none opacity-50"><i className="fas fa-plus"></i></div>
+                            <input 
+                                type="text"
+                                className="w-full bg-bg-secondary border border-[#252540] rounded p-2 pl-8 text-sm text-white focus:border-brand-purple focus:outline-none placeholder-gray-600"
+                                placeholder="Add custom instruments..."
+                                value={musicInstrSecondary}
+                                onChange={(e) => setMusicInstrSecondary(e.target.value)}
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -309,7 +391,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
                     <label className="text-xs text-gray-400 mb-1 block font-medium">Additional Context</label>
                     <textarea 
                         className="w-full bg-bg-secondary border border-[#252540] rounded-lg p-3 text-sm text-gray-200 focus:border-brand-purple focus:outline-none resize-y min-h-[60px]"
-                        placeholder="Structure, reference tracks, specific elements..."
+                        placeholder="Describe structure, dynamics, or specific production elements..."
                         value={musicDescription}
                         onChange={(e) => setMusicDescription(e.target.value)}
                     />
@@ -326,7 +408,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
                 </Button>
             </div>
 
-            {/* Loading Indicator (Music) */}
+            {/* Results Display */}
             {loading && activeGenerator === 'music' && (
                 <div className="p-6 bg-bg-secondary/50 border-t border-[#252540] flex flex-col items-center justify-center animate-fadeIn">
                     <div className="relative w-12 h-12 mb-3">
@@ -337,67 +419,81 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
                 </div>
             )}
 
-            {/* Music Results Display */}
             {!loading && musicResult && (
-                <div className="p-5 border-t border-[#252540] space-y-4 animate-slideUp bg-bg-secondary/30">
-                    {/* Header Card */}
-                    <div className="relative p-5 rounded-xl border border-brand-purple/30 bg-gradient-to-br from-bg-secondary to-[#2a1b3d] overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <i className="fas fa-compact-disc text-9xl text-brand-purple"></i>
+                <div className="p-5 border-t border-[#252540] space-y-6 animate-slideUp bg-bg-secondary/30">
+                    <div className="relative p-6 rounded-2xl border border-brand-purple/30 bg-gradient-to-br from-[#1a1a2e] to-[#2a1b3d] overflow-hidden shadow-2xl">
+                        <div className="absolute -top-10 -right-10 opacity-5">
+                            <i className="fas fa-compact-disc text-[12rem] animate-spin-slow"></i>
                         </div>
                         
                         <div className="relative z-10">
-                            <div className="text-[10px] font-mono text-brand-pink tracking-widest uppercase mb-1">Concept</div>
-                            <h3 className="text-xl font-bold text-white mb-4 leading-tight">{musicResult.conceptName || "Untitled Track"}</h3>
+                            <div className="flex justify-between items-start mb-2">
+                                <span className="text-[10px] font-mono text-brand-pink tracking-[0.2em] uppercase font-bold">Studio Concept</span>
+                                <i className="fas fa-wave-square text-accent/40"></i>
+                            </div>
+                            <h3 className="text-2xl font-black text-white mb-6 leading-tight tracking-tight drop-shadow-lg">
+                                {musicResult.conceptName || "Untitled Composition"}
+                            </h3>
                             
-                            <div className="flex gap-3">
-                                <div className="flex-1 bg-bg-primary/40 backdrop-blur-md rounded px-3 py-2 border border-brand-purple/20">
-                                    <div className="text-[9px] text-gray-400 uppercase font-bold">BPM</div>
-                                    <div className="text-sm font-mono font-bold text-white">{musicResult.bpm}</div>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="bg-black/40 backdrop-blur-md rounded-lg p-3 border border-white/5 flex flex-col items-center justify-center">
+                                    <span className="text-[8px] text-gray-500 uppercase font-black mb-1">Tempo</span>
+                                    <span className="text-sm font-mono font-bold text-accent">{musicResult.bpm}</span>
                                 </div>
-                                <div className="flex-1 bg-bg-primary/40 backdrop-blur-md rounded px-3 py-2 border border-brand-purple/20">
-                                    <div className="text-[9px] text-gray-400 uppercase font-bold">Key</div>
-                                    <div className="text-sm font-mono font-bold text-white">{musicResult.key}</div>
+                                <div className="bg-black/40 backdrop-blur-md rounded-lg p-3 border border-white/5 flex flex-col items-center justify-center">
+                                    <span className="text-[8px] text-gray-500 uppercase font-black mb-1">Musical Key</span>
+                                    <span className="text-sm font-mono font-bold text-brand-pink truncate w-full text-center px-1" title={musicResult.key}>{musicResult.key}</span>
+                                </div>
+                                <div className="bg-black/40 backdrop-blur-md rounded-lg p-3 border border-white/5 flex flex-col items-center justify-center">
+                                    <span className="text-[8px] text-gray-500 uppercase font-black mb-1">Signature</span>
+                                    <span className="text-sm font-mono font-bold text-white">{musicResult.timeSignature || "4/4"}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Structure Timeline */}
-                    <div className="space-y-2">
-                        <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Structure</h4>
-                        <div className="relative pl-3 space-y-2">
-                            <div className="absolute left-[15px] top-2 bottom-2 w-px bg-brand-purple/30"></div>
+                    <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                <i className="fas fa-layer-group text-brand-purple"></i> Arrangement Timeline
+                            </h4>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 p-3 bg-black/20 rounded-xl border border-[#252540]">
                             {musicResult.structure?.map((section, i) => (
-                                <div key={i} className="flex items-center gap-3 relative z-10">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-brand-purple"></div>
-                                    <div className="text-xs text-gray-300 bg-bg-primary/50 px-2 py-1 rounded border border-[#252540] w-full">
-                                        {section}
-                                    </div>
+                                <div 
+                                    key={i} 
+                                    className={`px-3 py-2 rounded-md border text-[10px] font-black transition-all hover:scale-105 cursor-default flex items-center gap-2 ${getSectionColor(section)}`}
+                                >
+                                    <span className="opacity-40">{i + 1}</span>
+                                    {section}
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* Instruments */}
-                    <div>
-                         <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Instruments</h4>
-                         <div className="flex flex-wrap gap-1.5">
+                    <div className="space-y-3">
+                         <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <i className="fas fa-guitar text-accent"></i> Core Instrumentation
+                         </h4>
+                         <div className="flex flex-wrap gap-2">
                             {musicResult.instrumentation?.map((inst, i) => (
-                                <span key={i} className="text-[10px] font-medium bg-[#1a1a2e] px-2 py-1 rounded text-accent border border-accent/10">
+                                <span key={i} className="text-[10px] font-bold bg-[#141420] px-3 py-1.5 rounded-full text-gray-300 border border-[#252540] hover:border-accent hover:text-white transition-colors cursor-default">
                                     {inst}
                                 </span>
                             ))}
                         </div>
                     </div>
 
-                    {/* Tips */}
-                    <div className="bg-bg-primary/30 p-3 rounded border border-[#252540]">
-                         <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Production Tips</h4>
-                         <ul className="space-y-1">
+                    <div className="bg-gradient-to-br from-bg-tertiary to-bg-secondary p-4 rounded-xl border border-[#252540] relative overflow-hidden group">
+                         <div className="absolute top-0 left-0 w-1 h-full bg-brand-pink opacity-50"></div>
+                         <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <i className="fas fa-sliders text-brand-pink"></i> Production Insights
+                         </h4>
+                         <ul className="space-y-3">
                             {musicResult.productionTips?.map((tip, i) => (
-                                <li key={i} className="text-[11px] text-gray-400 flex gap-2">
-                                    <span className="text-brand-pink">•</span> {tip}
+                                <li key={i} className="text-[11px] text-gray-400 flex gap-3 leading-relaxed">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-brand-pink shrink-0 mt-1"></span> 
+                                    <span className="group-hover:text-gray-200 transition-colors">{tip}</span>
                                 </li>
                             ))}
                          </ul>
@@ -406,7 +502,6 @@ export const AIPanel: React.FC<AIPanelProps> = ({ isOpen, onClose }) => {
             )}
         </section>
 
-         {/* Stems Placeholder */}
          <section className="bg-bg-tertiary border border-[#252540] rounded-xl p-4 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-300">
             <h3 className="text-gray-400 font-semibold mb-3 flex items-center gap-2">
                 <i className="fas fa-layer-group"></i> Stem Separator

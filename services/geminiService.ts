@@ -16,7 +16,7 @@ export const generateLyrics = async (prompt: string): Promise<string> => {
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: `You are a professional songwriter. Write lyrics based on the following prompt. 
       Format them with clear structure (Verse, Chorus, etc.). 
       
@@ -36,14 +36,17 @@ export interface MusicConceptParams {
   genre: string;
   mood: string;
   tempo: string;
+  timeSignature: string;
   key: string;
   instrumentation: string;
+  arrangement: string;
   description: string;
 }
 
 export interface MusicConcept {
   conceptName: string;
   bpm: string;
+  timeSignature: string;
   key: string;
   instrumentation: string[];
   structure: string[];
@@ -56,16 +59,23 @@ export const generateMusicConcept = async (params: MusicConceptParams): Promise<
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: `You are a music producer assistant. Provide a detailed concept for a music track based on the user's specific requirements.
       
       Parameters:
       - Genre: ${params.genre}
       - Mood: ${params.mood}
-      - Tempo/BPM: ${params.tempo}
+      - Tempo: ${params.tempo}
+      - Time Signature: ${params.timeSignature}
       - Musical Key: ${params.key}
       - Preferred Instrumentation: ${params.instrumentation}
+      - Arrangement Style: ${params.arrangement}
       - Additional Context/Description: ${params.description}
+
+      IMPORTANT: The 'structure' field in the output must strictly reflect the requested Arrangement Style. 
+      - If 'Simple (Verse-Chorus)', provide a concise sequence.
+      - If 'Complex (Intro-Verse-Chorus-Bridge-Outro)', include all standard sections plus transitions.
+      - If 'Experimental', suggest non-linear or unique structures.
       `,
       config: {
         responseMimeType: "application/json",
@@ -74,6 +84,7 @@ export const generateMusicConcept = async (params: MusicConceptParams): Promise<
             properties: {
                 conceptName: { type: Type.STRING, description: "A creative title for the track concept" },
                 bpm: { type: Type.STRING, description: "Specific BPM suggestion (e.g. '124 BPM')" },
+                timeSignature: { type: Type.STRING, description: "Time Signature (e.g. '4/4', '6/8')" },
                 key: { type: Type.STRING, description: "Specific Key suggestion (e.g. 'C Minor')" },
                 instrumentation: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of specific instruments/sounds" },
                 structure: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of song sections in order (e.g. 'Intro', 'Verse 1')" },
@@ -99,7 +110,7 @@ export const generateVoiceProfileDescription = async (description: string): Prom
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: `Analyze the following voice description and create a technical profile summary for a vocal synthesizer.
       Focus on timbre, pitch range, and character.
       
