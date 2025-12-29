@@ -3,6 +3,7 @@ import { TopBar } from './components/layout/TopBar';
 import { Sidebar } from './components/layout/Sidebar';
 import { Timeline } from './components/editor/Timeline';
 import { AIPanel } from './components/editor/AIPanel';
+import { VirtualKeyboard } from './components/editor/VirtualKeyboard';
 import { Modal } from './components/ui/Modal';
 import { Button } from './components/ui/Button';
 import { Track, TrackType, ProjectStats, Region } from './types';
@@ -59,6 +60,7 @@ const App: React.FC = () => {
   // Layout State
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [addTrackModalOpen, setAddTrackModalOpen] = useState(false);
 
   // Project State & History
@@ -115,6 +117,10 @@ const App: React.FC = () => {
         if (e.code === 'Space' && (e.target as HTMLElement).tagName !== 'TEXTAREA' && (e.target as HTMLElement).tagName !== 'INPUT') {
             e.preventDefault();
             setIsPlaying(prev => !prev);
+        }
+        // Toggle keyboard with 'K' if not typing in inputs
+        if (e.key.toLowerCase() === 'k' && (e.target as HTMLElement).tagName !== 'TEXTAREA' && (e.target as HTMLElement).tagName !== 'INPUT') {
+          setKeyboardOpen(prev => !prev);
         }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -178,6 +184,8 @@ const App: React.FC = () => {
       <TopBar 
         toggleSidebar={() => setSidebarOpen(!sidebarOpen)} 
         toggleAiPanel={() => setAiPanelOpen(!aiPanelOpen)}
+        toggleKeyboard={() => setKeyboardOpen(!keyboardOpen)}
+        isKeyboardOpen={keyboardOpen}
         onUndo={undo}
         onRedo={redo}
         canUndo={history.length > 0}
@@ -197,17 +205,23 @@ const App: React.FC = () => {
           onToggleSolo={handleToggleSolo}
         />
         
-        <Timeline 
-          tracks={tracks}
-          isPlaying={isPlaying}
-          onTogglePlay={() => setIsPlaying(!isPlaying)}
-          onStop={() => setIsPlaying(false)}
-          bpm={bpm}
-          setBpm={setBpm}
-          onTrackUpdate={handleTrackRegionUpdate}
-          currentTime={currentTime}
-          setCurrentTime={setCurrentTime}
-        />
+        <div className="flex-1 flex flex-col min-w-0">
+            <Timeline 
+              tracks={tracks}
+              isPlaying={isPlaying}
+              onTogglePlay={() => setIsPlaying(!isPlaying)}
+              onStop={() => setIsPlaying(false)}
+              bpm={bpm}
+              setBpm={setBpm}
+              onTrackUpdate={handleTrackRegionUpdate}
+              currentTime={currentTime}
+              setCurrentTime={setCurrentTime}
+            />
+            <VirtualKeyboard 
+                isOpen={keyboardOpen} 
+                onClose={() => setKeyboardOpen(false)} 
+            />
+        </div>
 
         <AIPanel 
           isOpen={aiPanelOpen} 

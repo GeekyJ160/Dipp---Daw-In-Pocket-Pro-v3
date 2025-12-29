@@ -106,8 +106,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   const renderLibrary = () => (
-    <div className="flex-1 flex flex-col overflow-hidden animate-fadeIn">
-      <div className="p-4 space-y-4 border-b border-[#252540]">
+    <div className="flex-1 flex flex-col overflow-hidden animate-fadeIn bg-bg-primary/20">
+      <div className="p-4 space-y-4 border-b border-[#252540] bg-bg-tertiary/40">
         <div className="relative">
           <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
           <input 
@@ -120,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {['All', 'Loops', 'MIDI', 'Drums', 'Synths'].map(filter => (
-            <button key={filter} className="whitespace-nowrap px-3 py-1 bg-bg-secondary border border-[#252540] rounded-full text-[10px] text-gray-500 hover:border-accent hover:text-accent transition-all">
+            <button key={filter} className="whitespace-nowrap px-3 py-1 bg-bg-secondary border border-[#252540] rounded-full text-[10px] text-gray-500 hover:border-accent hover:text-accent transition-all font-bold">
               {filter}
             </button>
           ))}
@@ -147,22 +147,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {selectedAsset && (
-        <div className="p-4 bg-bg-tertiary/80 backdrop-blur-md border-t border-[#252540] animate-slideUp">
+        <div className="p-4 bg-bg-tertiary/90 backdrop-blur-md border-t border-[#252540] animate-slideUp">
           <div className="flex justify-between items-start mb-3">
              <div className="text-[10px] font-black uppercase text-accent tracking-[0.2em]">Previewer</div>
              <button onClick={() => setSelectedAsset(null)} className="text-gray-600 hover:text-white transition-colors"><i className="fas fa-times"></i></button>
           </div>
-          <div className="h-10 bg-black/40 rounded border border-[#252540] mb-3 relative overflow-hidden flex items-center px-2">
-              <div className="w-full h-4 flex items-end gap-[1px]">
-                  {[...Array(30)].map((_, i) => (
-                    <div key={i} className="flex-1 bg-accent/40 rounded-t-sm" style={{ height: `${20 + Math.random() * 80}%` }} />
+          <div className="h-12 bg-black/40 rounded border border-[#252540] mb-3 relative overflow-hidden flex items-center px-2">
+              <div className="w-full h-6 flex items-end gap-[1.5px]">
+                  {[...Array(40)].map((_, i) => (
+                    <div key={i} className="flex-1 bg-accent/40 rounded-t-[1px]" style={{ height: `${10 + Math.random() * 90}%` }} />
                   ))}
               </div>
-              <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white shadow-[0_0_8px_white] animate-scan" />
+              <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-white shadow-[0_0_10px_white] animate-scan" style={{ animation: 'scan 2s linear infinite' }} />
           </div>
           <div className="flex gap-2">
-            <Button variant="primary" className="flex-1 justify-center text-xs" icon={<i className="fas fa-plus"/>}>Import</Button>
-            <Button variant="secondary" className="w-10 h-10 p-0 justify-center"><i className="fas fa-heart text-gray-600"/></Button>
+            <Button variant="primary" className="flex-1 justify-center text-xs" icon={<i className="fas fa-plus"/>}>Import to Track</Button>
+            <Button variant="secondary" className="w-10 h-10 p-0 justify-center"><i className="fas fa-heart text-gray-600 hover:text-brand-pink transition-colors"/></Button>
           </div>
         </div>
       )}
@@ -176,59 +176,58 @@ export const Sidebar: React.FC<SidebarProps> = ({
         const panValue = track.pan || 0;
         
         return (
-          <div key={track.id} className="w-[100px] shrink-0 border-r border-[#252540] flex flex-col items-center py-4 bg-gradient-to-b from-transparent to-black/20">
-            {/* Pan Knob (Simplified as slider for web) */}
-            <div className="mb-4 flex flex-col items-center">
-              <div className="text-[9px] font-black uppercase text-gray-500 mb-1 tracking-widest">Pan</div>
-              <div className="relative w-12 h-1.5 bg-black rounded-full overflow-hidden border border-[#252540]">
+          <div key={track.id} className="w-[110px] shrink-0 border-r border-[#252540] flex flex-col items-center py-4 bg-gradient-to-b from-transparent to-black/20">
+            {/* Pan Knob */}
+            <div className="mb-4 flex flex-col items-center relative group">
+              <div className="text-[9px] font-black uppercase text-gray-500 mb-2 tracking-widest">Pan</div>
+              <div className="relative w-14 h-1.5 bg-black rounded-full overflow-hidden border border-[#252540]">
                 <div 
-                  className="absolute top-0 bottom-0 w-1 bg-accent" 
+                  className="absolute top-0 bottom-0 w-1.5 bg-accent shadow-[0_0_8px_#00e7ff]" 
                   style={{ left: `${50 + panValue * 50}%`, transform: 'translateX(-50%)' }} 
                 />
               </div>
-              <div className="text-[8px] font-mono mt-1 text-gray-600">
+              <div className="text-[8px] font-mono mt-1 text-gray-400 group-hover:text-accent transition-colors">
                 {panValue === 0 ? 'C' : panValue < 0 ? `L${Math.abs(Math.round(panValue * 100))}` : `R${Math.round(panValue * 100)}`}
               </div>
               <input 
                 type="range" min="-1" max="1" step="0.01" 
                 value={panValue} 
                 onChange={(e) => onPanChange(track.id, parseFloat(e.target.value))}
-                className="w-12 h-1 opacity-0 absolute cursor-pointer"
+                className="w-14 h-4 opacity-0 absolute top-4 cursor-pointer z-10"
               />
             </div>
 
             {/* Inserts Rack */}
-            <div className="w-[80%] space-y-1 mb-6">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className={`h-4 rounded-[2px] border text-[8px] flex items-center justify-center font-black uppercase tracking-tighter transition-colors cursor-pointer ${track.fxEnabled ? 'bg-brand-purple/10 border-brand-purple/30 text-brand-purple' : 'bg-bg-tertiary border-[#252540] text-gray-700 hover:text-gray-400'}`}>
-                    {i === 0 && track.fxEnabled ? 'DYN-EQ' : '- empty -'}
+            <div className="w-[85%] space-y-1.5 mb-6">
+                <div className="text-[8px] font-black uppercase text-gray-600 mb-1 text-center">Inserts</div>
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className={`h-4.5 rounded-[3px] border text-[8px] flex items-center justify-center font-black uppercase tracking-tighter transition-all cursor-pointer ${track.fxEnabled && i === 0 ? 'bg-brand-purple/20 border-brand-purple/50 text-brand-purple' : 'bg-bg-tertiary border-[#252540] text-gray-700 hover:text-gray-400'}`}>
+                    {i === 0 && track.fxEnabled ? 'DYN-EQ v2' : '- empty -'}
                   </div>
                 ))}
             </div>
 
             {/* Meter */}
-            <div className="flex-1 w-8 bg-black rounded-sm border-2 border-[#1a1a2e] p-[2px] relative flex flex-col justify-end overflow-hidden mb-4">
+            <div className="flex-1 w-8 bg-black rounded-sm border-2 border-[#1a1a2e] p-[2.5px] relative flex flex-col justify-end overflow-hidden mb-4">
               <div className="absolute inset-0 flex flex-col justify-between py-1 px-[1px] opacity-10 pointer-events-none z-10">
-                {[...Array(15)].map((_, i) => <div key={i} className="h-px bg-white w-full" />)}
+                {[...Array(20)].map((_, i) => <div key={i} className="h-px bg-white w-full" />)}
               </div>
               <div 
-                className="w-full transition-all duration-75 rounded-t-sm"
+                className="w-full transition-all duration-75 rounded-t-[1px]"
                 style={{ 
-                  height: `${isEffectivelyMuted ? 0 : Math.max(2, track.volume * (40 + Math.random() * 60))}%`, 
+                  height: `${isEffectivelyMuted ? 0 : Math.max(3, track.volume * (30 + Math.random() * 70))}%`, 
                   backgroundColor: track.color,
-                  boxShadow: `0 -4px 15px ${track.color}66`
+                  boxShadow: `0 -4px 15px ${track.color}88`
                 }}
               />
-              {/* Peak indicator */}
               <div className="absolute top-0 left-0 w-full h-1 bg-red-500 opacity-20" />
             </div>
 
-            {/* Fader Track */}
-            <div className="h-44 w-10 relative flex justify-center mb-6">
-              <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-1.5 bg-black rounded-full border border-[#252540]" />
-              {/* Fader Tick marks */}
-              <div className="absolute left-0 right-0 top-0 bottom-0 pointer-events-none opacity-20 flex flex-col justify-between items-center py-2">
-                  {[...Array(6)].map((_, i) => <div key={i} className="w-4 h-[1px] bg-gray-400" />)}
+            {/* Fader */}
+            <div className="h-48 w-12 relative flex justify-center mb-6">
+              <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-2 bg-black rounded-full border border-[#252540]" />
+              <div className="absolute left-0 right-0 top-0 bottom-0 pointer-events-none opacity-20 flex flex-col justify-between items-center py-2 px-1">
+                  {[...Array(10)].map((_, i) => <div key={i} className="w-full h-[1px] bg-gray-400" />)}
               </div>
               <input 
                 type="range" min="0" max="1" step="0.01"
@@ -238,28 +237,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 style={{ appearance: 'none', background: 'transparent', width: '100%', height: '100%', WebkitAppearance: 'slider-vertical' } as any}
               />
               <div 
-                className="absolute w-7 h-10 bg-bg-tertiary border-2 rounded shadow-2xl pointer-events-none z-10 flex flex-col justify-center items-center group-hover:scale-105 transition-transform"
+                className="absolute w-8 h-12 bg-bg-tertiary border-2 rounded-sm shadow-2xl pointer-events-none z-10 flex flex-col justify-center items-center group-hover:scale-105 transition-transform"
                 style={{ bottom: `${track.volume * 85}%`, borderColor: track.color }}
               >
-                <div className="w-5 h-1 rounded-full" style={{ backgroundColor: track.color }} />
+                <div className="w-6 h-1.5 rounded-full" style={{ backgroundColor: track.color, boxShadow: `0 0 10px ${track.color}` }} />
               </div>
             </div>
 
             {/* Strip Footer */}
-            <div className="w-full space-y-2 px-2">
-              <div className="flex gap-1">
+            <div className="w-full space-y-2 px-2.5">
+              <div className="flex gap-1.5">
                 <button 
                   onClick={() => onToggleMute(track.id)}
-                  className={`flex-1 h-7 text-[10px] font-black rounded border transition-all ${track.muted ? 'bg-red-500 border-red-400 text-white' : 'bg-bg-tertiary border-[#252540] text-gray-600'}`}
+                  className={`flex-1 h-7 text-[10px] font-black rounded border transition-all ${track.muted ? 'bg-red-500 border-red-400 text-white' : 'bg-bg-tertiary border-[#252540] text-gray-500 hover:text-gray-300'}`}
                 >M</button>
                 <button 
                   onClick={() => onToggleSolo(track.id)}
-                  className={`flex-1 h-7 text-[10px] font-black rounded border transition-all ${track.solo ? 'bg-accent border-accent-dark text-bg-primary' : 'bg-bg-tertiary border-[#252540] text-gray-600'}`}
+                  className={`flex-1 h-7 text-[10px] font-black rounded border transition-all ${track.solo ? 'bg-accent border-accent-dark text-bg-primary' : 'bg-bg-tertiary border-[#252540] text-gray-500 hover:text-gray-300'}`}
                 >S</button>
               </div>
-              <div className="bg-black/40 rounded py-1 border border-[#252540]">
-                  <div className="text-[9px] font-black text-center truncate px-1" style={{ color: track.color }}>{track.name}</div>
-                  <div className="text-[8px] font-mono text-center text-gray-600">{Math.round(track.volume * 100)} dB</div>
+              <div className="bg-black/40 rounded-[4px] py-1.5 border border-[#252540] shadow-inner">
+                  <div className="text-[9px] font-black text-center truncate px-1 uppercase tracking-tighter" style={{ color: track.color }}>{track.name}</div>
+                  <div className="text-[8px] font-mono text-center text-gray-600 mt-0.5">{Math.round(track.volume * 100)} dB</div>
               </div>
             </div>
           </div>
@@ -267,30 +266,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
       })}
       
       {/* Master Section */}
-      <div className="w-[120px] shrink-0 border-r-2 border-accent/20 bg-accent/5 flex flex-col items-center py-4 relative">
-        <div className="absolute top-2 text-[10px] font-black text-accent tracking-[0.3em] uppercase opacity-30">Out</div>
+      <div className="w-[140px] shrink-0 border-r-2 border-accent/20 bg-[#0a0a14] flex flex-col items-center py-4 relative shadow-2xl">
+        <div className="absolute top-2 text-[10px] font-black text-accent tracking-[0.4em] uppercase opacity-40">Main Out</div>
         
-        <div className="flex gap-1 h-4 border-b border-accent/20 w-full mb-10 px-4">
-             <div className="flex-1 bg-accent/10 rounded-sm"></div>
-             <div className="flex-1 bg-accent/10 rounded-sm"></div>
+        <div className="flex-1 w-12 bg-black rounded-sm border-2 border-accent/20 p-[3px] relative flex items-end gap-[3px] mb-4 mt-8">
+           <div className="flex-1 h-[75%] bg-gradient-to-t from-accent via-accent to-brand-pink rounded-t-[1px] shadow-[0_0_20px_rgba(0,231,255,0.4)] transition-all duration-100"></div>
+           <div className="flex-1 h-[73%] bg-gradient-to-t from-accent via-accent to-brand-pink rounded-t-[1px] shadow-[0_0_20px_rgba(0,231,255,0.4)] transition-all duration-100"></div>
         </div>
 
-        <div className="flex-1 w-10 bg-black rounded-sm border-2 border-accent/20 p-[2px] relative flex items-end gap-[2px] mb-4">
-           <div className="flex-1 h-[70%] bg-gradient-to-t from-accent to-brand-pink rounded-t-[1px] shadow-[0_0_15px_rgba(0,231,255,0.3)]"></div>
-           <div className="flex-1 h-[68%] bg-gradient-to-t from-accent to-brand-pink rounded-t-[1px] shadow-[0_0_15px_rgba(0,231,255,0.3)]"></div>
-        </div>
-
-        <div className="h-44 w-12 relative flex justify-center mb-6">
-            <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-2 bg-black rounded-full border border-accent/20" />
-            <div className="absolute w-8 h-12 bg-accent border-2 border-white rounded shadow-[0_0_30px_rgba(0,231,255,0.4)] z-10 bottom-[65%] flex flex-col justify-center items-center">
-                <div className="w-6 h-1.5 bg-bg-primary rounded-full" />
+        <div className="h-48 w-14 relative flex justify-center mb-6">
+            <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-2.5 bg-black rounded-full border border-accent/10" />
+            <div className="absolute w-9 h-14 bg-accent border-2 border-white rounded shadow-[0_0_40px_rgba(0,231,255,0.5)] z-10 bottom-[65%] flex flex-col justify-center items-center">
+                <div className="w-7 h-2 bg-bg-primary rounded-full shadow-inner" />
             </div>
         </div>
         
-        <div className="w-full px-2 mt-auto">
-            <div className="bg-accent/10 rounded-lg p-2 border border-accent/30 text-center">
-                <div className="text-[10px] font-black uppercase text-accent">Master</div>
-                <div className="text-[10px] font-mono text-white">0.0 dB</div>
+        <div className="w-full px-3 mt-auto">
+            <div className="bg-accent/10 rounded-xl p-3 border border-accent/40 text-center backdrop-blur-sm">
+                <div className="text-[10px] font-black uppercase text-accent tracking-widest mb-1">Master</div>
+                <div className="text-sm font-mono text-white font-bold">+1.2</div>
             </div>
         </div>
       </div>
@@ -300,7 +294,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside 
       className={`
-        fixed md:relative z-10 h-[calc(100vh-64px)] w-[300px] bg-bg-secondary border-r border-[#252540] flex flex-col transition-transform duration-300 ease-in-out
+        fixed md:relative z-10 h-[calc(100vh-64px)] w-[320px] bg-bg-secondary border-r border-[#252540] flex flex-col transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:hidden'}
       `}
     >
@@ -309,15 +303,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button 
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${activeTab === tab ? 'text-accent bg-bg-secondary' : 'text-gray-600 hover:text-gray-300'}`}
+            className={`flex-1 py-4 text-[10px] font-black uppercase tracking-[0.25em] transition-all relative ${activeTab === tab ? 'text-accent bg-bg-secondary' : 'text-gray-600 hover:text-gray-300'}`}
           >
             {tab}
-            {activeTab === tab && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent shadow-[0_0_10px_#00e7ff]" />}
+            {activeTab === tab && <div className="absolute bottom-0 left-0 w-full h-[3px] bg-accent shadow-[0_0_15px_#00e7ff]" />}
           </button>
         ))}
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden bg-bg-primary/30">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {activeTab === SidebarTab.TRACKS && renderTracks()}
         {activeTab === SidebarTab.LIBRARY && renderLibrary()}
         {activeTab === SidebarTab.MIXER && renderMixer()}
@@ -326,21 +320,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {activeTab === SidebarTab.TRACKS && (
         <div className="p-4 bg-bg-tertiary border-t border-[#252540]">
           <div className="grid grid-cols-3 gap-2">
-              <div className="text-center p-1.5 bg-black/20 rounded-lg border border-[#252540]">
-                  <div className="text-xs font-bold text-accent">{stats.trackCount}</div>
+              <div className="text-center p-2 bg-black/30 rounded-lg border border-[#252540] hover:border-accent/40 transition-colors">
+                  <div className="text-sm font-bold text-accent">{stats.trackCount}</div>
                   <div className="text-[8px] uppercase tracking-wider text-gray-600 font-black">Tracks</div>
               </div>
-              <div className="text-center p-1.5 bg-black/20 rounded-lg border border-[#252540]">
-                  <div className="text-xs font-bold text-accent">{stats.duration}</div>
+              <div className="text-center p-2 bg-black/30 rounded-lg border border-[#252540] hover:border-accent/40 transition-colors">
+                  <div className="text-sm font-bold text-accent">{stats.duration}</div>
                   <div className="text-[8px] uppercase tracking-wider text-gray-600 font-black">Time</div>
               </div>
-              <div className="text-center p-1.5 bg-black/20 rounded-lg border border-[#252540]">
-                  <div className="text-xs font-bold text-accent">{stats.bpm}</div>
+              <div className="text-center p-2 bg-black/30 rounded-lg border border-[#252540] hover:border-accent/40 transition-colors">
+                  <div className="text-sm font-bold text-accent">{stats.bpm}</div>
                   <div className="text-[8px] uppercase tracking-wider text-gray-600 font-black">BPM</div>
               </div>
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes scan {
+          from { left: 0%; }
+          to { left: 100%; }
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </aside>
   );
 };

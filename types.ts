@@ -1,4 +1,3 @@
-
 export enum TrackType {
   AUDIO = 'audio',
   MIDI = 'midi',

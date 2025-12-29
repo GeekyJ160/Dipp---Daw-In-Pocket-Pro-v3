@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Track, Region } from '../../types';
+import { Button } from '../ui/Button';
 
 interface TimelineProps {
   tracks: Track[];
@@ -60,37 +61,66 @@ export const Timeline: React.FC<TimelineProps> = ({
     };
   }, [isPlaying, currentTime, setCurrentTime]);
 
+  const handleRegenerateSeed = () => {
+    if (!selectedRegion) return;
+    const { trackId, regionId } = selectedRegion;
+    const track = tracks.find(t => t.id === trackId);
+    if (!track) return;
+
+    const newRegions = track.regions.map(r => 
+      r.id === regionId ? { ...r, waveformSeed: Math.floor(Math.random() * 10000) } : r
+    );
+    onTrackUpdate(trackId, newRegions);
+  };
+
+  const handleDuplicateSelected = () => {
+    if (!selectedRegion) return;
+    const { trackId, regionId } = selectedRegion;
+    const track = tracks.find(t => t.id === trackId);
+    if (!track) return;
+    const region = track.regions.find(r => r.id === regionId);
+    if (!region) return;
+
+    const newRegion: Region = {
+      ...region,
+      id: `r-${Date.now()}`,
+      start: region.start + region.duration,
+      name: `${region.name} (Copy)`
+    };
+    const newRegions = [...track.regions, newRegion];
+    onTrackUpdate(trackId, newRegions);
+    setSelectedRegion({ trackId, regionId: newRegion.id });
+  };
+
+  const handleDeleteSelected = () => {
+    if (!selectedRegion) return;
+    const { trackId, regionId } = selectedRegion;
+    const track = tracks.find(t => t.id === trackId);
+    if (!track) return;
+    const newRegions = track.regions.filter(r => r.id !== regionId);
+    onTrackUpdate(trackId, newRegions);
+    setSelectedRegion(null);
+  };
+
   // Keyboard Shortcuts for Selection
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!selectedRegion) return;
 
-      const { trackId, regionId } = selectedRegion;
-      const track = tracks.find(t => t.id === trackId);
-      if (!track) return;
-
-      const region = track.regions.find(r => r.id === regionId);
-      if (!region) return;
-
       // Delete
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        const newRegions = track.regions.filter(r => r.id !== regionId);
-        onTrackUpdate(trackId, newRegions);
-        setSelectedRegion(null);
+        handleDeleteSelected();
       }
 
       // Duplicate (Ctrl+D)
       if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
         e.preventDefault();
-        const newRegion: Region = {
-          ...region,
-          id: `r-${Date.now()}`,
-          start: region.start + region.duration,
-          name: `${region.name} (Copy)`
-        };
-        const newRegions = [...track.regions, newRegion];
-        onTrackUpdate(trackId, newRegions);
-        setSelectedRegion({ trackId, regionId: newRegion.id });
+        handleDuplicateSelected();
+      }
+
+      // Regenerate Seed (Ctrl+R or R)
+      if (e.key.toLowerCase() === 'r' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+        handleRegenerateSeed();
       }
     };
 
@@ -100,9 +130,6 @@ export const Timeline: React.FC<TimelineProps> = ({
 
   /**
    * Auto-scroll Logic (Follow Mode)
-   * This implementation uses "Paging" logic common in professional DAWs.
-   * When the playhead reaches the right 90% of the visible container, 
-   * the view jumps forward so the playhead is at the left 10% mark.
    */
   useEffect(() => {
     if (!isPlaying || !autoScroll || !containerRef.current) return;
@@ -113,12 +140,9 @@ export const Timeline: React.FC<TimelineProps> = ({
     const visibleWidth = container.clientWidth;
     const visibleEnd = visibleStart + visibleWidth;
 
-    // Threshold for jumping (90% of visible width)
     const jumpThreshold = visibleStart + (visibleWidth * 0.9);
 
-    // If playhead goes out of bounds (past threshold or before left edge)
     if (playheadX > jumpThreshold || playheadX < visibleStart) {
-      // Jump so the playhead is at 10% from the left for a fresh view
       const newScrollLeft = Math.max(0, playheadX - (visibleWidth * 0.1));
       container.scrollTo({ left: newScrollLeft, behavior: 'auto' });
     }
@@ -221,7 +245,8 @@ export const Timeline: React.FC<TimelineProps> = ({
 
             for (let px = 0; px < w; px += step) {
                 const timeOffset = px;
-                const noise = Math.sin(timeOffset * 0.1 + region.waveformSeed) * Math.cos(timeOffset * 0.5 + region.waveformSeed * 2);
+                // Waveform generation using the unique seed
+                const noise = Math.sin(timeOffset * 0.1 + region.waveformSeed) * Math.cos(timeOffset * 0.5 + (region.waveformSeed * 0.7));
                 const heightVal = Math.abs(noise) * (trackHeight - 30) * 0.4 * currentVolume;
                 ctx.moveTo(x + px, middleY - heightVal);
                 ctx.lineTo(x + px, middleY + heightVal);
@@ -441,8 +466,49 @@ export const Timeline: React.FC<TimelineProps> = ({
             )}
 
             {selectedRegion && (
-              <div className="absolute top-20 right-6 bg-bg-tertiary/80 backdrop-blur px-3 py-1.5 rounded-lg border border-accent/30 text-[10px] text-gray-400 font-mono shadow-xl pointer-events-none animate-fadeIn">
-                <span className="text-accent font-bold">Region Selected</span>: [Delete] to remove, [Ctrl+D] to duplicate
+              <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-bg-secondary/90 backdrop-blur-md px-6 py-4 rounded-2xl border border-accent/40 text-gray-200 shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex items-center gap-6 animate-slideUp z-50">
+                <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase text-accent tracking-widest mb-1">Region Control</span>
+                    <span className="text-xs font-medium text-white truncate max-w-[120px]">
+                        {tracks.find(t => t.id === selectedRegion.trackId)?.regions.find(r => r.id === selectedRegion.regionId)?.name}
+                    </span>
+                </div>
+                
+                <div className="h-8 w-px bg-white/10 mx-2"></div>
+
+                <div className="flex gap-2">
+                    <button 
+                        onClick={handleRegenerateSeed}
+                        className="h-10 px-4 rounded-lg bg-accent/10 border border-accent/30 text-accent text-xs font-bold hover:bg-accent hover:text-bg-primary transition-all flex items-center gap-2"
+                        title="Randomize Waveform Seed (R)"
+                    >
+                        <i className="fas fa-dice"></i>
+                        Regenerate
+                    </button>
+                    <button 
+                        onClick={handleDuplicateSelected}
+                        className="h-10 px-4 rounded-lg bg-bg-tertiary border border-[#252540] text-gray-300 text-xs font-bold hover:border-accent hover:text-white transition-all flex items-center gap-2"
+                        title="Duplicate Region (Ctrl+D)"
+                    >
+                        <i className="fas fa-copy"></i>
+                        Duplicate
+                    </button>
+                    <button 
+                        onClick={handleDeleteSelected}
+                        className="h-10 px-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500 hover:text-white transition-all flex items-center gap-2"
+                        title="Delete Region (Del)"
+                    >
+                        <i className="fas fa-trash"></i>
+                        Delete
+                    </button>
+                </div>
+                
+                <button 
+                    onClick={() => setSelectedRegion(null)}
+                    className="ml-2 text-gray-500 hover:text-white"
+                >
+                    <i className="fas fa-times"></i>
+                </button>
               </div>
             )}
         </div>

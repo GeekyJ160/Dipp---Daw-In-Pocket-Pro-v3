@@ -4,6 +4,8 @@ import { Button } from '../ui/Button';
 interface TopBarProps {
   toggleSidebar: () => void;
   toggleAiPanel: () => void;
+  toggleKeyboard: () => void;
+  isKeyboardOpen: boolean;
   onUndo: () => void;
   onRedo: () => void;
   canUndo: boolean;
@@ -13,6 +15,8 @@ interface TopBarProps {
 export const TopBar: React.FC<TopBarProps> = ({ 
   toggleSidebar, 
   toggleAiPanel,
+  toggleKeyboard,
+  isKeyboardOpen,
   onUndo,
   onRedo,
   canUndo,
@@ -51,6 +55,13 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       <div className="flex items-center gap-3">
+        <Button 
+            onClick={toggleKeyboard} 
+            variant={isKeyboardOpen ? 'primary' : 'secondary'}
+            icon={<i className="fas fa-keyboard" />}
+        >
+          Keys
+        </Button>
         <Button onClick={toggleSidebar} icon={<i className="fas fa-bars" />}>
           Tracks
         </Button>
