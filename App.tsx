@@ -41,7 +41,7 @@ const INITIAL_TRACKS: Track[] = [
     },
     { 
         id: 3, 
-        name: 'Vocals', 
+        name: 'Lead Vocals', 
         type: TrackType.VOCAL, 
         color: '#b967ff', 
         muted: false, 
@@ -53,6 +53,18 @@ const INITIAL_TRACKS: Track[] = [
             { id: 'r4', start: 8, duration: 4, name: 'Verse 1', waveformSeed: 999 },
             { id: 'r5', start: 16, duration: 8, name: 'Chorus', waveformSeed: 888 }
         ]
+    },
+    { 
+        id: 4, 
+        name: 'Backing Vocals', 
+        type: TrackType.VOCAL, 
+        color: '#ff4d8d', 
+        muted: false, 
+        solo: false, 
+        volume: 0.8,
+        pan: -0.4,
+        fxEnabled: false,
+        regions: []
     },
 ];
 
