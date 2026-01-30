@@ -76,6 +76,7 @@ const App: React.FC = () => {
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [addTrackModalOpen, setAddTrackModalOpen] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
 
   // Project State & History
   const [tracks, setTracks] = useState<Track[]>(INITIAL_TRACKS);
@@ -89,20 +90,27 @@ const App: React.FC = () => {
   const [newTrackName, setNewTrackName] = useState('');
   const [newTrackType, setNewTrackType] = useState<TrackType>(TrackType.AUDIO);
 
+  // Feedback System
+  const showStatus = (msg: string) => {
+    setStatusMessage(msg);
+    setTimeout(() => setStatusMessage(''), 3000);
+  };
+
   // Persistence
-  const saveProject = useCallback(() => {
+  const saveProject = useCallback((silent = false) => {
     try {
       const data = {
         tracks,
         bpm,
+        timestamp: Date.now(),
         version: '1.0'
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      if (!silent) showStatus('Project Saved');
       console.log('Project saved to local storage.');
-      // Visual feedback could be added here
     } catch (err) {
       console.error('Failed to save project:', err);
-      alert('Failed to save project to local storage.');
+      if (!silent) alert('Failed to save project to local storage.');
     }
   }, [tracks, bpm]);
 
@@ -116,14 +124,37 @@ const App: React.FC = () => {
       const data = JSON.parse(saved);
       if (data.tracks) setTracks(data.tracks);
       if (data.bpm) setBpm(data.bpm);
+      
+      // Reset history on load to prevent cross-project undos
       setHistory([]);
       setFuture([]);
+      showStatus('Project Loaded');
       console.log('Project loaded from local storage.');
     } catch (err) {
       console.error('Failed to load project:', err);
       alert('Failed to load project. The save data might be corrupted.');
     }
   }, []);
+
+  const newProject = useCallback(() => {
+    if (window.confirm('Start a new project? Unsaved changes will be lost.')) {
+      setTracks(INITIAL_TRACKS);
+      setBpm(120);
+      setCurrentTime(0);
+      setIsPlaying(false);
+      setHistory([]);
+      setFuture([]);
+      showStatus('New Project Created');
+    }
+  }, []);
+
+  // Auto-save every 60 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      saveProject(true);
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [saveProject]);
 
   // History Actions
   const pushHistory = useCallback((newTracks: Track[]) => {
@@ -191,8 +222,8 @@ const App: React.FC = () => {
       name: newTrackName || `Track ${tracks.length + 1}`,
       type: newTrackType,
       color: colors[tracks.length % colors.length],
-      muted: false,
-      solo: false,
+      muted: false, 
+      solo: false, 
       volume: 0.8,
       pan: 0,
       fxEnabled: false,
@@ -246,8 +277,10 @@ const App: React.FC = () => {
         onRedo={redo}
         canUndo={history.length > 0}
         canRedo={future.length > 0}
-        onSave={saveProject}
+        onSave={() => saveProject()}
         onLoad={loadProject}
+        onNew={newProject}
+        statusMessage={statusMessage}
       />
 
       <div className="flex flex-1 overflow-hidden relative">
