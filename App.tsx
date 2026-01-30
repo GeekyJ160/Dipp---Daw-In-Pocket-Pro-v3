@@ -68,6 +68,8 @@ const INITIAL_TRACKS: Track[] = [
     },
 ];
 
+const STORAGE_KEY = 'dipp_project_data';
+
 const App: React.FC = () => {
   // Layout State
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -86,6 +88,42 @@ const App: React.FC = () => {
   // Add Track Form State
   const [newTrackName, setNewTrackName] = useState('');
   const [newTrackType, setNewTrackType] = useState<TrackType>(TrackType.AUDIO);
+
+  // Persistence
+  const saveProject = useCallback(() => {
+    try {
+      const data = {
+        tracks,
+        bpm,
+        version: '1.0'
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      console.log('Project saved to local storage.');
+      // Visual feedback could be added here
+    } catch (err) {
+      console.error('Failed to save project:', err);
+      alert('Failed to save project to local storage.');
+    }
+  }, [tracks, bpm]);
+
+  const loadProject = useCallback(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) {
+        alert('No saved project found in local storage.');
+        return;
+      }
+      const data = JSON.parse(saved);
+      if (data.tracks) setTracks(data.tracks);
+      if (data.bpm) setBpm(data.bpm);
+      setHistory([]);
+      setFuture([]);
+      console.log('Project loaded from local storage.');
+    } catch (err) {
+      console.error('Failed to load project:', err);
+      alert('Failed to load project. The save data might be corrupted.');
+    }
+  }, []);
 
   // History Actions
   const pushHistory = useCallback((newTracks: Track[]) => {
@@ -117,6 +155,12 @@ const App: React.FC = () => {
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+        // Ctrl/Cmd + S to Save
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            saveProject();
+        }
+        
         if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
             e.preventDefault();
             if (e.shiftKey) redo();
@@ -137,7 +181,7 @@ const App: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [undo, redo]);
+  }, [undo, redo, saveProject]);
 
   // Track Actions
   const handleAddTrack = () => {
@@ -202,6 +246,8 @@ const App: React.FC = () => {
         onRedo={redo}
         canUndo={history.length > 0}
         canRedo={future.length > 0}
+        onSave={saveProject}
+        onLoad={loadProject}
       />
 
       <div className="flex flex-1 overflow-hidden relative">
